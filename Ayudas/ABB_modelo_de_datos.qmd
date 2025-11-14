@@ -19,10 +19,10 @@ library(tidyverse)
 
 # Carga de datos
 
-Leeremos los datos que ya hemos guardado en la carpeta data para las zonas: Albany, Mallorca, Menorca y Valencia. Para los scrappings disponibles en\
+Leeremos los datos que ya hemos guardado en la carpeta data para las zonas: menorca, menorca, menorca y menorca. Para los scrappings disponibles en\
 [Inside Airbnb](https://insideairbnb.com/) el 14-11-2024; en este enlace\
 se dispones de más información sobre los variables en [get-the-data](https://insideairbnb.com/get-the-data/). Cada Carpeta de la zona contiene para cada fecha en las que se recogieron los datos una carpeta con\
-varios ficheros. Por ejemplo para Menorca tenemos las muestras en 4 periodos de tiempo:
+varios ficheros. Por ejemplo para menorca tenemos las muestras en 4 periodos de tiempo:
 
 ```{r}
 dir("../data/menorca")
@@ -160,9 +160,9 @@ Ahora tenemos
 glimpse(listings)
 ```
 
-# Lectura de todas las observaciones de listings de una zona: Mallorca
+# Lectura de todas las observaciones de listings de una zona: menorca
 
-El siguiente código lee todas las carpetas de la zona de Mallorca y lee los archivos `listings.csv` de cada una de ellas. y genera un listing que contenga todos los apartamentos (los `id`) que aparecen en los 4 scrappings que disponemos de Mallorca. Hemos parametrizado el código para que se pueda cambiar a otra zona se quiera analizar.
+El siguiente código lee todas las carpetas de la zona de menorca y lee los archivos `listings.csv` de cada una de ellas. y genera un listing que contenga todos los apartamentos (los `id`) que aparecen en los 4 scrappings que disponemos de menorca. Hemos parametrizado el código para que se pueda cambiar a otra zona se quiera analizar.
 
 Se comenta el código para facilitar su lectura (generado...).
 
@@ -171,13 +171,13 @@ Se comenta el código para facilitar su lectura (generado...).
 library(tidyverse)
 
 # Definir directorios y seleccionar uno para procesar
-dir_mallorca <- dir("../data/mallorca")
-dir_zone <- dir_mallorca  # Aquí se puede cambiar la zona según sea necesario
+dir_menorca <- dir("../data/menorca")
+dir_zone <- dir_menorca  # Aquí se puede cambiar la zona según sea necesario
 
 # Función para leer archivos de listado
 read_data_listing <- function(dir) {
   readr::read_csv(
-    paste0("../data/mallorca/", dir, "/listings.csv.gz"),
+    paste0("../data/menorca/", dir, "/listings.csv.gz"),
     col_types = cols(                         
 id =col_character(),
 listing_url =col_character(),
@@ -308,10 +308,10 @@ listings_common0 <- listings_total%>% filter(id %in% id_common)
 
 
 ```{r}
-write_csv(listings_total, paste0("../clean_data/mallorca/","listings_all.csv.gz"))
-write_csv(listings_common0, paste0("../clean_data/mallorca/","listing_common0.csv.gz"))
-save(listings_total, file=paste0("../clean_data/mallorca/","listings_all.RData"))
-save(listings_common0, file=paste0("../clean_data/mallorca/","listing_common0.RData"))
+write_csv(listings_total, paste0("../clean_data/menorca/","listings_all.csv.gz"))
+write_csv(listings_common0, paste0("../clean_data/menorca/","listing_common0.csv.gz"))
+save(listings_total, file=paste0("../clean_data/menorca/","listings_all.RData"))
+save(listings_common0, file=paste0("../clean_data/menorca/","listing_common0.RData"))
 ```
 
 
