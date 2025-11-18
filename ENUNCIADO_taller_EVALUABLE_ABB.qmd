@@ -15,12 +15,17 @@ format:
     code-overflow: wrap
 ---
 
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE,
-                      warning = FALSE,cache=FALSE)
-# packages
+                      warning = FALSE, cache=FALSE)
+# Carga de todas las librerías necesarias al inicio
 library(tidyverse)
+library(kableExtra)
+library(sf)
+library(tmap)
+library(GGally)
+library(corrplot)
+library(stringr)
 ```
 
 # Instrucciones para el taller
@@ -40,18 +45,18 @@ Se entrega en grupos que deben de estar constituidos en la actividad de grupos. 
 Leeremos los siguientes datos de la zona de etiqueta `mallorca` con el código siguiente:
 
 ```{r}
+# Carga del archivo común pre-procesado
 load("clean_data/mallorca/listing_common0.RData")
-ls()
+
+# Selección de variables de interés
 listings0 = listings_common0 %>%
   select(id, scrape_id, listing_url,
          neighbourhood_cleansed, price,
          number_of_reviews,
          review_scores_rating,
-         review_scores_rating,
          review_scores_cleanliness,
          review_scores_location,
          review_scores_value,
-         number_of_reviews,
          accommodates,
          bathrooms_text,
          bedrooms,
@@ -64,94 +69,76 @@ listings0 = listings_common0 %>%
          room_type)
 ```
 
-Hemos seleccionado las variables que nos parecen más interesantes y hemos guardado el objeto como `listings_common0_select.RData` en `clean_data/mallorca/`
-
-
 **listings**
 
-Hemos cargado el objeto `listings0` que contiene los datos varios  periodos de apartamentos de inside Airbnb de Mallorca seleccionando cuantas variables nos parecen más interesantes.
+Hemos cargado el objeto `listings0` que contiene los datos varios periodos de apartamentos de inside Airbnb de Mallorca seleccionando cuantas variables nos parecen más interesantes.
 
-Separararemos la fecha del scrapping que es eb la que se observon el fichero y nos quedaremos con los apartamentos que aparecen en las 9 periodos scrapeados.
+Separaremos la fecha del scrapping que es en la que se observó el fichero.
 
 ```{r}
-listings0= listings0 %>% mutate(date=as.Date(substr(as.character(scrape_id),1,8),
-                                             format="%Y%m%d"),
-                                .after=id)
+listings0 = listings0 %>% 
+  mutate(date = as.Date(substr(as.character(scrape_id), 1, 8), format="%Y%m%d"),
+         .after = id)
 ```
 
-Ahora veamos la fechas de los sceapings y el número de veces que aparecen 
- cada  apartamentos.
-
-
+Ahora veamos la fechas de los scrapings y el número de veces que aparecen cada apartamentos.
 
 ```{r}
 table(listings0$date)
 ```
-Hay 8 periodos de scrapping y vamos a quedarnos con los apartamentos que aparecen en todos los periodos
-
 
 Vemos que cada apartamento aparece 8 veces una por periodo.
-
 
 ```{r}
 table(table(listings0$id))
 ```
 
-
-
 Notemos que cada apartamento:
 
--   queda identificado por id y por date que nos da el periodo en la que apareció el dato.
--   así que cada apartamento aparece 8 veces ya que hemos elegido solo los apartamentos que aparecen en las 8 muestras.
--   Las muestras son `r unique(listings0$date)`,
-
-```{r}
-unique(listings0$date)
-```
+-   Queda identificado por id y por date que nos da el periodo en la que apareció el dato.
+-   Las muestras disponibles son: `r unique(listings0$date)`.
 
 **reviews**
 
-Estos datos necesitan leerse de forma adecuada, las columnas 1, 2 y 4 deben ser de tipo `character` las otras son correctas
+Estos datos necesitan leerse de forma adecuada.
+**Nota:** Cargamos el archivo desde la carpeta `2024-09-13`.
 
 ```{r}
-reviews=read_csv("data/mallorca/2025-09-21/reviews.csv.gz")
+# Ruta ajustada a tus archivos
+reviews = read_csv("data/mallorca/2024-09-13/reviews.csv.gz")
 str(reviews)
 head(reviews)
 ```
 
 **neighbourhoods.csv**
 
-Son dos columnas y la primera es una agrupación de municipios (están NA) y la segunda es el nombre del municipio
+Son dos columnas y la primera es una agrupación de municipios (están NA) y la segunda es el nombre del municipio.
 
 ```{r}
-municipios=read_csv("data/mallorca/2025-09-21/neighbourhoods.csv")
+# Ruta ajustada a tus archivos
+municipios = read_csv("data/mallorca/2024-09-13/neighbourhoods.csv")
 str(municipios)
 head(municipios)
 ```
 
 **neighbourhoods.geojson**
 
-Es el mapa de Mallorca, o podemos leer así:
+Es el mapa de Mallorca.
 
 ```{r}
-library(sf)
-library(tmap)
+# Leer el archivo GeoJSON (Ruta ajustada)
+geojson_sf <- sf::st_read("data/mallorca/2024-09-13/neighbourhoods.geojson")
 
-# Leer el archivo GeoJSON
-geojson_sf <- sf::st_read("data/mallorca/2025-09-21/neighbourhoods.geojson")
-
-# Crear un mapa
-
-# interactivo
-tmap_mode("plot") # Cambiar a modo  view/plot   que es interactivo/estático
+# Crear un mapa interactivo/estático
+tmap_mode("plot") 
 tm_shape(geojson_sf) +
   tm_polygons(col = "cyan", alpha = 0.6) +
   tm_layout(title = "Mapa - GeoJSON Mallorca con municipios")
 ```
 
-Tenéis que consultar en la documentación de inside Airbnb para saber que significa cada variable. Os puede ser útil leer los ficheros [DATA_ABB_modelo_de_datos.html](DATA_ABB_modelo_de_datos.html) y [DATA_ABB_modelo_de_datos.pdf](DATA_ABB_modelo_de_datos.html) en los que se explica el modelo de datos de inside Airbnb y como se cargan en el espacio de trabajo.
+Tenéis que consultar en la documentación de inside Airbnb para saber que significa cada variable.
 
-Responder las siguientes preguntas con formato Rmarkdown (.Rmd) o quarto (.qmd) y entregad la fuente un fichero en formato html como salida del informe. Se puntúa la claridad de la respuesta, la calidad de la redacción y la corrección de la respuesta.
+Responder las siguientes preguntas con formato Rmarkdown (.Rmd) o quarto (.qmd) y entregad la fuente un fichero en formato html como salida del informe.
 
 ## Pregunta 1 (**1punto**)
 
@@ -159,99 +146,325 @@ Del fichero con los datos de listings `listings0` calcula los estadísticos desc
 
 Presenta los resultados con una tabla de kableExtra.
 
+```{r}
+# Cálculo de estadísticos descriptivos
+tabla_resumen <- listings0 %>%
+  group_by(neighbourhood_cleansed, date) %>%
+  summarise(
+    media_precio = mean(price, na.rm = TRUE),
+    sd_precio = sd(price, na.rm = TRUE),
+    media_reviews = mean(number_of_reviews, na.rm = TRUE),
+    sd_reviews = sd(number_of_reviews, na.rm = TRUE),
+    n = n(),
+    .groups = "drop"
+  )
+
+# Visualización con KableExtra
+tabla_resumen %>%
+  kbl(caption = "Estadísticos descriptivos por Municipio y Periodo", digits = 2) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed")) %>%
+  scroll_box(width = "100%", height = "400px")
+```
+
 ## Pregunta 2 (**1punto**)
 
 Consideremos las variables `price` y `number_of_reviews` de Pollença y Palma del periodo "2024-09-13", del fichero `listing_common0_select.RData`. 
-Estudiad si estos datos se aproximan a una distribución normal gráficamente. Para ello, dibujad el histograma, la función "kernel-density" que aproxima la densidad y la densidad de la normal de media y varianza las de las muestras de las variables `price` (para precios mayores de 50 y menores de 400) y `number_of_reviews` para Palma y 	
-Pollença
+Estudiad si estos datos se aproximan a una distribución normal gráficamente. Para ello, dibujad el histograma, la función "kernel-density" que aproxima la densidad y la densidad de la normal de media y varianza las de las muestras.
+
+```{r}
+# Filtrar datos para 2024-09-13
+datos_p2 <- listings0 %>%
+  filter(date == as.Date("2024-09-13"),
+         neighbourhood_cleansed %in% c("Palma", "Pollença"),
+         price > 50, price < 400)
+
+# Gráfico para el Precio
+ggplot(datos_p2, aes(x = price)) +
+  geom_histogram(aes(y = after_stat(density)), bins = 30, fill = "lightblue", color = "black", alpha = 0.6) +
+  geom_density(color = "red", linewidth = 1, aes(linetype = "Kernel")) +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(datos_p2$price, na.rm=TRUE), 
+                            sd = sd(datos_p2$price, na.rm=TRUE)), 
+                aes(color = "Normal Teórica"), linewidth = 1) +
+  facet_wrap(~neighbourhood_cleansed) +
+  labs(title = "Distribución del Precio (Palma vs Pollença)",
+       subtitle = "Comparación Histograma vs Normal",
+       y = "Densidad", x = "Precio") +
+  theme_minimal()
+
+# Gráfico para Número de Reseñas
+ggplot(datos_p2, aes(x = number_of_reviews)) +
+  geom_histogram(aes(y = after_stat(density)), bins = 30, fill = "lightgreen", color = "black", alpha = 0.6) +
+  geom_density(color = "red", linewidth = 1) +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(datos_p2$number_of_reviews, na.rm=TRUE), 
+                            sd = sd(datos_p2$number_of_reviews, na.rm=TRUE)), 
+                color = "blue", linewidth = 1) +
+  facet_wrap(~neighbourhood_cleansed) +
+  labs(title = "Distribución de Número de Reseñas", y = "Densidad", x = "Nº Reseñas") +
+  theme_minimal()
+```
 
 ## Pregunta 3 (**1punto**)
 
-Con los datos de `listings0` de todos los periodos, contrastar si la media del precio en Alcudia es igual a la de Palma **contra** que es mayor que en Palma para los precios mayores que 50 euros y menores de 400. Construid la hipótesis nula y alternativa, calculad el $p$-valor y el intervalo de confianza asociado al contraste. Justifica técnicamente la conclusión del contraste.
+Con los datos de `listings0` de todos los periodos, contrastar si la media del precio en Alcudia es igual a la de Palma **contra** que es mayor que en Palma para los precios mayores que 50 euros y menores de 400. Construid la hipótesis nula y alternativa, calculad el $p$-valor y el intervalo de confianza asociado al contraste.
+
+```{r}
+# Pregunta 3: Contraste de medias Alcúdia vs Palma
+
+# 1. Unificamos correctamente los nombres de municipios
+datos_p3 <- listings0 %>%
+  mutate(
+    neighbourhood_cleansed = str_squish(neighbourhood_cleansed),        # quita espacios
+    neighbourhood_cleansed = str_to_sentence(neighbourhood_cleansed),   # uniformiza
+    neighbourhood_cleansed = case_when(
+      neighbourhood_cleansed %in% c("Alcudia", "Alcúdia") ~ "Alcúdia",
+      neighbourhood_cleansed %in% c("Palma", "Palma de mallorca", "Palma De Mallorca", 
+                                    "Palma de Mallorca") ~ "Palma",
+      TRUE ~ neighbourhood_cleansed
+    )
+  ) %>%
+  # 2. Filtrado de municipios y rango de precios
+  filter(
+    neighbourhood_cleansed %in% c("Alcúdia", "Palma"),
+    price > 50, price < 400
+  ) %>%
+  mutate(neighbourhood_cleansed = droplevels(factor(neighbourhood_cleansed)))
+
+# 3. Mostrar cuántos datos hay para cada municipio
+cat("Número de observaciones por municipio después del filtrado:\n")
+print(table(datos_p3$neighbourhood_cleansed))
+
+# 4. Verificar que realmente existen dos grupos
+if (length(levels(datos_p3$neighbourhood_cleansed)) < 2) {
+
+  cat("\n⚠️ No se puede realizar el t-test.\n")
+  cat("Motivo: alguno de los municipios no tiene datos en el rango 50–400 euros.\n")
+
+} else {
+
+  # 5. Realizar contraste t-test
+  t_test_p3 <- t.test(
+    price ~ neighbourhood_cleansed,
+    data = datos_p3,
+    alternative = "greater"   # ¿Es Alcúdia más caro que Palma?
+  )
+
+  cat("\nResultado del t-test:\n")
+  print(t_test_p3)
+
+  # 6. Mostrar intervalo de confianza
+  cat("\nIntervalo de confianza (unilateral, Alcúdia - Palma):\n")
+  print(t_test_p3$conf.int)
+}
+ 
+```
 
 ## Pregunta 4 (**1punto**)
 
-Con los  datos de `listings0`, contrastar si las medias de los precios en Alcudia entre los periodos  2025-06-15 y   2025-09-21 son iguales contra que son menores en 2023. Construid la hipótesis nula y alternativa, calculad el $p$-valor y el intervalo de confianza asociado al contraste.
+Con los datos de `listings0`, contrastar si las medias de los precios en Alcudia entre los periodos disponibles (Junio 2024 vs Septiembre 2024) son iguales contra que son menores en el primero.
 
-Haced un diagrama de caja comparativo de los precios  en Alcudia  por periodo y coméntalo.
+```{r}
+# Comparamos Junio 2024 vs Septiembre 2024 (fechas disponibles)
+datos_p4 <- listings0 %>%
+  # Aseguramos el nombre correcto usando str_detect para atrapar tildes
+  filter(str_detect(neighbourhood_cleansed, "Alcudia|Alcúdia"),
+         date %in% as.Date(c("2024-06-19", "2024-09-13")))
+
+# T-test
+t.test(price ~ date, data = datos_p4)
+
+# Boxplot
+ggplot(datos_p4, aes(x = as.factor(date), y = price, fill = as.factor(date))) +
+  geom_boxplot() +
+  labs(title = "Precios en Alcudia: Junio 2024 vs Septiembre 2024", 
+       x = "Fecha", y = "Precio", fill = "Fecha") +
+  theme_bw()
+```
 
 ## Pregunta 5 (**1 punto**)
 
-Comparar con un bopxlot de las valoraciones medias `review_scores_rating` para Alcudia, Palma, Calvià y
-Pollença. Hacer el gráfico con ggplot2 y todo lujo de destalles.
+Comparar con un bopxlot de las valoraciones medias `review_scores_rating` para Alcudia, Palma, Calvià y Pollença.
 
+```{r}
+datos_p5 <- listings0 %>%
+  filter(str_detect(neighbourhood_cleansed, "Alcudia|Alcúdia|Palma|Calvià|Pollença"))
+
+ggplot(datos_p5, aes(x = neighbourhood_cleansed, y = review_scores_rating, fill = neighbourhood_cleansed)) +
+  geom_boxplot(outlier.colour = "red", outlier.shape = 1) +
+  labs(title = "Distribución de Valoraciones por Municipio",
+       x = "Municipio", y = "Rating") +
+  theme_classic() +
+  theme(legend.position = "none")
+```
 
 ## Pregunta 6 (**1 punto**)
 
-Calcular la proporción de apartamentos de la muestra "2025-09-21" con media de valoración `review_scores_rating` mayor que 4 en Alcudia y en Calvià son iguales contra que son distintas. Construid un intervalo de confianza para la diferencia de proporciones.
+Calcular la proporción de apartamentos de la muestra "2024-09-13" con media de valoración `review_scores_rating` mayor que 4 en Alcudia y en Calvià son iguales contra que son distintas.
 
+```{r}
+datos_p6 <- listings0 %>%
+  filter(date == as.Date("2024-09-13"),
+         str_detect(neighbourhood_cleansed, "Alcudia|Alcúdia|Calvià")) %>%
+  mutate(high_rating = ifelse(review_scores_rating > 4, 1, 0))
+
+# Limpiamos nombres para la tabla
+datos_p6 <- datos_p6 %>%
+  mutate(neighbourhood_cleansed = str_replace(neighbourhood_cleansed, "Alcúdia", "Alcudia"))
+
+tabla_prop6 <- table(datos_p6$neighbourhood_cleansed, datos_p6$high_rating)
+print(tabla_prop6)
+
+prop.test(x = tabla_prop6[, "1"], n = rowSums(tabla_prop6))
+```
 
 ## Pregunta 7 (**1punto**)
 
-Calcular la proporción de apartamentos de los periodos 2025-06-15 y  2025-09-21  con media de valoración `review_scores_rating` mayor que 4 en Palma  y en Pollença son iguales contra que son distintas.
-
-### Pregunta 7 
-Agrupa las variables `review_scores_rating` y `review_scores_location` de `listings0` en 5 categorías cada una y construid una tabla de contingencia con las dos variables agrupadas. Agrupar de forma que no cruces de categorías vacías. Contratar si esta varibles son independientes con  un test $\chi^2$. 
-
-Buscan información sobre el coeficiente de contingencia de Carl Pearson, cacularlo desde  la salida de chisq.test interpretarlo  en esta caso
-
+Calcular la proporción de apartamentos de los periodos 2024-06-19 y 2024-09-13 con media de valoración `review_scores_rating` mayor que 4 en Palma y en Pollença.
 
 ```{r}
-table(cut(listings0$review_scores_rating,5),
-      cut(listings0$review_scores_location,5))
+datos_p7 <- listings0 %>%
+  filter(date %in% as.Date(c("2024-06-19", "2024-09-13")),
+         neighbourhood_cleansed %in% c("Palma", "Pollença")) %>%
+  mutate(high_rating = ifelse(review_scores_rating > 4, 1, 0))
+
+tabla_prop7 <- table(datos_p7$neighbourhood_cleansed, datos_p7$high_rating)
+prop.test(x = tabla_prop7[, "1"], n = rowSums(tabla_prop7))
 ```
 
+### Pregunta 7 (Contingencia)
 
+Agrupa las variables `review_scores_rating` y `review_scores_location` en 5 categorías y testea independencia.
+
+```{r}
+# Tabla de contingencia
+tabla_chi <- table(cut(listings0$review_scores_rating, 5),
+                   cut(listings0$review_scores_location, 5))
+
+print(tabla_chi)
+
+# Test Chi-Cuadrado
+chi_test <- chisq.test(tabla_chi)
+print(chi_test)
+
+# Coeficiente de Contingencia de Pearson
+N_total <- sum(tabla_chi)
+coef_contingencia <- sqrt(chi_test$statistic / (N_total + chi_test$statistic))
+
+cat("Coeficiente de Contingencia:", coef_contingencia, "\n")
+```
 
 ## Pregunta 9 (**3 puntos**)
 
-Construye un data set con las variables 
-review_scores_rating, review_scores_cleanliness, review_scores_location, review_scores_value de listings0 y  el municipio/zona `neighbourhood_cleansed`
+Construye un data set con las variables de puntuación y calcula la matriz de correlaciones.
 
-Calcula la matriz de correlaciones entre estas variables y haz un gráfico de pares (pair plot) con la librería GGally. Comenta los resultados.
+```{r}
+# Seleccionar variables
+datos_corr <- listings0 %>%
+  select(neighbourhood_cleansed, 
+         review_scores_rating, 
+         review_scores_cleanliness, 
+         review_scores_location, 
+         review_scores_value) %>%
+  na.omit()
 
-Haz un matrixplot de las correlaciones con la librería corrplot. Comenta los resultados.
+# Matriz de correlación
+matriz_corr <- cor(datos_corr %>% select(-neighbourhood_cleansed))
+
+# Gráfico de pares (GGally) - Usamos una muestra para agilizar
+ggpairs(datos_corr %>% sample_n(min(1000, n())), 
+        aes(color = neighbourhood_cleansed, alpha = 0.5),
+        columns = 2:5) +
+        labs(title = "Relaciones entre Puntuaciones")
+
+# Gráfico de matriz (Corrplot)
+corrplot(matriz_corr, method = "ellipse", type = "upper", 
+         tl.col = "black", addCoef.col = "black",
+         title = "Matriz de Correlaciones")
+```
 
 ## Pregunta 9 (**2 puntos**)
 
-La [Zipf's law es una ley empírica](https://en.wikipedia.org/wiki/Zipf%27s_law#Word_frequencies_in_natural_languages) que dice que la frecuencia de las palabras en un texto es inversamente proporcional a su rango. Decidid si la ley se ajusta a los datos de la longitud de los comentarios de los apartamentos de la muestra "2025-09-21" Mallorca, haced lo mismo para description de `listings0`. Para ello, haced un análisis de regresión lineal de la frecuencia de las longitudes de los comentarios/descripciones de los apartamentos de Mallorca y el rango de las longitudes de los comentarios. Justificad la respuesta, estadísticamente y gráficamente.
+**Ley de Zipf**. Análisis de la longitud de los comentarios y descripciones.
 
-Como ayuda estudiar el siguiente código, utilizadlo y comentadlo.
-
-```{r}
-library(stringr)
-# para las reseñas
-head(reviews)
-length_rewiews=stringr::str_count(reviews$comments,"\\w+")
-barplot(table(length_rewiews))
-
-#para las descripciones
-length_description=stringr::str_count(listings0$description,"\\w+")
-barplot(table(length_description))
-```
-
-Y ahora se calculan los rango os lo dejo para reviews par desctption lo haceís vosotros
+**1. Análisis para las Reseñas (Reviews)**
 
 ```{r}
+# Contamos palabras
+length_rewiews = stringr::str_count(reviews$comments, "\\w+")
 
-aux=table(length_rewiews)
-head(aux)
-head(names(aux))
-tbl=tibble( L=as.numeric(names(aux)),Freq=as.numeric(aux),
-            Rank=rank(L),Log_Freq=log(Freq),Log_Rank=log(Rank))
-str(tbl)
+barplot(table(length_rewiews), 
+        main = "Distribución Longitud Reviews", xlab = "Nº Palabras")
+
+# Preparación para Zipf
+aux = table(length_rewiews)
+
+tbl_rev = tibble(
+  L = as.numeric(names(aux)),
+  Freq = as.numeric(aux)
+) %>%
+  arrange(desc(Freq)) %>%  # ORDENAR por frecuencia descendente
+  mutate(
+    Rank = row_number(),
+    Log_Freq = log(Freq),
+    Log_Rank = log(Rank)
+  )
+
+# Filtrar colas (Rank > 10 y < 1000)
+tbl2_rev = tbl_rev %>% filter(Rank > 10, Rank < 1000)
+
+# Modelo Log-Log (Zipf)
+sol3_rev = lm(Log_Freq ~ Log_Rank, data = tbl2_rev)
+summary(sol3_rev)
+
+# Gráfico Log-Log Reviews
+ggplot(tbl2_rev, aes(x = Log_Rank, y = Log_Freq)) +
+  geom_point(alpha = 0.5, color = "red") +
+  geom_smooth(method = "lm", color = "black") +
+  labs(title = "Ley de Zipf: Longitud de Reviews",
+       subtitle = paste("Pendiente:", round(coef(sol3_rev)[2], 3), 
+                        "| R2:", round(summary(sol3_rev)$r.squared, 3)),
+       x = "log(Rango)", y = "log(Frecuencia)") +
+  theme_minimal()
 ```
+
+**2. Análisis para las Descripciones (Listings)**
 
 ```{r}
-tbl2=tbl %>% filter(Rank>10) %>% filter(Rank<1000)
-sol1=lm(tbl2$Freq~tbl2$Rank)
-summary(sol1)
+# Contar palabras en descripciones
+length_description = stringr::str_count(listings0$description, "\\w+")
+length_description = na.omit(length_description)
 
-sol2=lm(tbl2$Freq~tbl2$Log_Rank)
-summary(sol2)
+barplot(table(length_description), main = "Distribución Longitud Descripciones")
 
-sol3=lm(tbl2$Log_Freq~tbl2$Log_Rank)
-summary(sol3)
+# Preparación Zipf
+aux_desc = table(length_description)
+
+tbl_desc = tibble(
+  L = as.numeric(names(aux_desc)),
+  Freq = as.numeric(aux_desc)
+) %>%
+  arrange(desc(Freq)) %>%  # ORDENAR por frecuencia
+  mutate(
+    Rank = row_number(),
+    Log_Freq = log(Freq),
+    Log_Rank = log(Rank)
+  )
+
+# Filtrar
+tbl2_desc = tbl_desc %>% filter(Rank > 10, Rank < 1000)
+
+# Modelo Log-Log
+sol3_desc = lm(Log_Freq ~ Log_Rank, data = tbl2_desc)
+summary(sol3_desc)
+
+# Gráfico Log-Log Descriptions
+ggplot(tbl2_desc, aes(x = Log_Rank, y = Log_Freq)) +
+  geom_point(alpha = 0.5, color = "blue") +
+  geom_smooth(method = "lm", color = "black") +
+  labs(title = "Ley de Zipf: Longitud de Descripciones",
+       subtitle = paste("Pendiente:", round(coef(sol3_desc)[2], 3), 
+                        "| R2:", round(summary(sol3_desc)$r.squared, 3)),
+       x = "log(Rango)", y = "log(Frecuencia)") +
+  theme_minimal()
 ```
-
-
